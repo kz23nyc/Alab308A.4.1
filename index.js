@@ -101,7 +101,7 @@ async function handleBreedSelect() {
   infoDump.appendChild(p);
 
   // TODO
-  Carousel.start();
+  // Carousel.start();
 }
 
 /**
@@ -133,7 +133,7 @@ async function axiosHandleBreedSelect() {
     `https://api.thecatapi.com/v1/images/search?limit=10&breed_ids=${breedSelect.value}`,
     {
       onDownloadProgress: updateProgess,
-    },    
+    }
   );
 
   // parsed json data
@@ -150,7 +150,7 @@ async function axiosHandleBreedSelect() {
     const element = Carousel.createCarouselItem(
       item.url,
       item.breeds[0].name,
-      item.id,
+      item.id
     );
     Carousel.appendCarousel(element);
   });
@@ -174,14 +174,17 @@ async function axiosHandleBreedSelect() {
 axios.interceptors.request.use((request) => {
   request.metadata = request.metadata || {};
   request.metadata.startTime = new Date().getTime();
-  
+
   console.log("Sending request .....");
   //reset the progressBar to 0
-  progressBar.style.width = '0px';
+  progressBar.style.width = "0px";
+  //sets the cursor to 'progress or loading'
+  document.body.style.cursor = "progress";
 
   return request;
 });
 
+// Response Interceptor
 axios.interceptors.response.use(
   (response) => {
     response.config.metadata.endTime = new Date().getTime();
@@ -189,9 +192,11 @@ axios.interceptors.response.use(
       response.config.metadata.endTime - response.config.metadata.startTime;
 
     console.log("Response completed.....");
+    // sets the body cursor to default
+    document.body.style.cursor = "";
 
     console.log(
-      `Request took ${response.config.metadata.durationInMS} milliseconds.`,
+      `Request took ${response.config.metadata.durationInMS} milliseconds.`
     );
     return response;
   },
@@ -204,7 +209,7 @@ axios.interceptors.response.use(
       `Request took ${error.config.metadata.durationInMS} milliseconds.`
     );
     throw error;
-  },
+  }
 );
 
 /**
@@ -227,10 +232,10 @@ function updateProgess(ProgressEvent) {
   console.log(ProgressEvent);
 
   if (ProgressEvent.lengthComputable) {
-    progressBar.style.width = ProgressEvent.total + 'px';
+    progressBar.style.width = ProgressEvent.total + "px";
   }
-
 }
+
 /**
  * 7. As a final element of progress indication, add the following to your axios interceptors:
  * - In your request interceptor, set the body element's cursor style to "progress."
@@ -247,8 +252,39 @@ function updateProgess(ProgressEvent) {
  *   you delete that favourite using the API, giving this function "toggle" functionality.
  * - You can call this function by clicking on the heart at the top right of any image.
  */
+
 export async function favourite(imgId) {
-  // your code here
+  // axios
+  //   .get("https://api.thecatapi.com/v1/favourites")
+  //   .then((res) =>
+  //     res.data.forEach((i) =>
+  //       axios.delete(`https://api.thecatapi.com/v1/favourites/${i.id}`),
+  //     ),
+  //   );
+
+  // GET all favourites
+  axios.get("https://api.thecatapi.com/v1/favourites").then((res) => {
+    console.log("FAVS => ", res.data);
+
+    let deleted = false;
+
+    // loop over the items
+    res.data.forEach((item) => {
+      //if the image is favourited then delete
+      if (item.image_id === imgId) {
+        // delete
+        deleted = true;
+        axios.delete(`https://api.thecatapi.com/v1/favourites/${item.id}`);
+      }
+    });
+
+    if (!deleted) {
+      //add
+      axios
+        .post("https://api.thecatapi.com/v1/favourites", { image_id: imgId })
+        .then((res) => console.log(res.data));
+    }
+  });
 }
 
 /**
@@ -260,7 +296,22 @@ export async function favourite(imgId) {
  *    If that isn't in its own function, maybe it should be so you don't have to
  *    repeat yourself in this section.
  */
+getFavouritesBtn.addEventListener('click', getFavourites);
 
+function getFavourites() {
+    axios.get("https://api.thecatapi.com/v1/favourites")
+    .then(res => {
+        console.log('All FAVS::: ', res.data);
+        Carousel.clear();
+
+        res.data.forEach(item => {
+            const element = Carousel.createCarouselItem(item.image.url, item.image_id, item.image.id)
+
+            Carousel.appendCarousel(element);
+        });
+    })
+    // Carousel.start();
+}
 /**
  * 10. Test your site, thoroughly!
  * - What happens when you try to load the Malayan breed?
